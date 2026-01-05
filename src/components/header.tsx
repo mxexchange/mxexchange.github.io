@@ -13,7 +13,7 @@ export function Header() {
         <Button variant="secondary" asChild>
           <Link href="/sign-in">Sign in</Link>
         </Button>
-        <Button variant="outline" className="bg-gray-800 text-white hover:bg-gray-700">
+        <Button variant="outline" asChild className="bg-gray-800 text-white hover:bg-gray-700">
           <Link href="/register">Register</Link>
         </Button>
       </div>
