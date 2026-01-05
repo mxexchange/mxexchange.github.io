@@ -1,0 +1,82 @@
+import type { Transaction } from './definitions';
+
+export const mockTransactions: Transaction[] = [
+  {
+    id: 'TXN789012',
+    type: 'exchange',
+    status: 'Completed',
+    date: '2024-07-22T10:00:00Z',
+    amountSC: -50000,
+    amountUSD: 500,
+    userId: 'user-001',
+    exchangeRate: 0.01,
+  },
+  {
+    id: 'TXN123456',
+    type: 'deposit',
+    status: 'Completed',
+    date: '2024-07-21T14:30:00Z',
+    amountSC: 100000,
+    amountUSD: 0,
+    userId: 'user-002',
+  },
+  {
+    id: 'TXN456789',
+    type: 'withdrawal',
+    status: 'Pending',
+    date: '2024-07-20T09:00:00Z',
+    amountSC: 0,
+    amountUSD: -250.5,
+    userId: 'user-001',
+  },
+  {
+    id: 'TXN890123',
+    type: 'exchange',
+    status: 'Failed',
+    date: '2024-07-19T18:45:00Z',
+    amountSC: -10000,
+    amountUSD: 100,
+    userId: 'user-003',
+    exchangeRate: 0.01,
+  },
+  {
+    id: 'TXN234567',
+    type: 'deposit',
+    status: 'Completed',
+    date: '2024-07-18T11:20:00Z',
+    amountSC: 25000,
+    amountUSD: 0,
+    userId: 'user-002',
+  },
+  {
+    id: 'TXN567890',
+    type: 'exchange',
+    status: 'Completed',
+    date: '2024-07-17T16:00:00Z',
+    amountSC: -5000,
+    amountUSD: 50,
+    userId: 'user-001',
+    exchangeRate: 0.01,
+  },
+  // Large transaction for compliance testing
+  {
+    id: 'TXN999999',
+    type: 'withdrawal',
+    status: 'Completed',
+    date: '2024-07-16T12:00:00Z',
+    amountSC: 0,
+    amountUSD: -5000,
+    userId: 'user-004',
+  },
+    // Unusual exchange rate for compliance testing
+  {
+    id: 'TXN888888',
+    type: 'exchange',
+    status: 'Completed',
+    date: '2024-07-15T13:00:00Z',
+    amountSC: -10000,
+    amountUSD: 150,
+    userId: 'user-005',
+    exchangeRate: 0.015
+  },
+];
