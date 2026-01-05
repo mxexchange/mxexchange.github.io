@@ -224,32 +224,13 @@ export default function AccountPage() {
             <MainNav />
         </div>
         <div className="grid gap-4 md:gap-8 max-w-6xl mx-auto w-full pt-16">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <BalanceCard currency="SC" amount={userData?.sweepsCoins ?? 0} isLoading={isLoading} />
-              <BalanceCard currency="USD" amount={userData?.usdBalance ?? 0} isLoading={isLoading} />
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-5 lg:gap-8">
+             <div className="grid grid-cols-1 gap-4 lg:grid-cols-5 lg:gap-8">
                  <div className="lg:col-span-3 grid gap-4">
                     <ExchangeForm 
                         onExchange={handleExchange} 
                         sweepsCoinsBalance={userData?.sweepsCoins ?? 0} 
                         disabled={!user || isLoading}
                     />
-                     <Card>
-                        <CardHeader>
-                          <CardTitle>Load Sweeps Coins</CardTitle>
-                          <CardDescription>
-                            Simulate loading coins from MXRacehub.
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <Button className="w-full" onClick={handleAddCoins} disabled={isAddingCoins || !user}>
-                            {isAddingCoins ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Coins className="mr-2 h-4 w-4" />}
-                            {isAddingCoins ? 'Loading...' : 'Load 10,000 SC'}
-                          </Button>
-                        </CardContent>
-                      </Card>
                 </div>
                 <div className="lg:col-span-2 grid gap-4 auto-rows-min">
                     <Card>
@@ -375,6 +356,26 @@ export default function AccountPage() {
                       </form>
                     </Card>
                 </div>
+            </div>
+             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-4">
+                    <BalanceCard currency="SC" amount={userData?.sweepsCoins ?? 0} isLoading={isLoading} />
+                     <Card>
+                        <CardHeader>
+                          <CardTitle>Load Sweeps Coins</CardTitle>
+                          <CardDescription>
+                            Simulate loading coins from MXRacehub.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <Button className="w-full" onClick={handleAddCoins} disabled={isAddingCoins || !user}>
+                            {isAddingCoins ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Coins className="mr-2 h-4 w-4" />}
+                            {isAddingCoins ? 'Loading...' : 'Load 10,000 SC'}
+                          </Button>
+                        </CardContent>
+                      </Card>
+                </div>
+                <BalanceCard currency="USD" amount={userData?.usdBalance ?? 0} isLoading={isLoading} />
             </div>
         </div>
     </PageShell>
