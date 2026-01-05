@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -12,10 +13,6 @@ const navItems = [
   {
     href: '/account',
     label: 'Account',
-  },
-  {
-    href: '/settings/bank',
-    label: 'Bank Info',
   },
 ];
 
