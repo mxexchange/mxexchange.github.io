@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Button } from './ui/button';
 
 export function Header() {
   return (
@@ -9,7 +10,9 @@ export function Header() {
         </Link>
       </div>
       <div className="flex items-center gap-2">
-        {/* The Sign-in button is removed from here to consolidate auth flow */}
+        <Button asChild variant="secondary">
+            <Link href="/sign-in">Sign In</Link>
+        </Button>
       </div>
     </header>
   );
