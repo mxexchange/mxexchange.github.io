@@ -3,7 +3,7 @@ import { Button } from './ui/button';
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-primary px-4 text-primary-foreground md:px-6">
+    <header className="sticky top-0 z-10 hidden h-16 items-center gap-4 border-b bg-primary px-4 text-primary-foreground md:px-6">
       <div className="flex-1">
         <Link href="/" className="text-xl font-bold">
           MX Exchange

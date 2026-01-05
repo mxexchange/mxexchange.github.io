@@ -15,6 +15,8 @@ import { useEffect, useState } from 'react';
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/config';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { MainNav } from '@/components/main-nav';
 
 interface UserData {
   username: string;
@@ -49,7 +51,13 @@ export default function DashboardPage() {
 
   return (
     <PageShell>
-      <div className="grid gap-4 md:gap-8">
+      <div className="flex items-center justify-between w-full max-w-6xl px-4 md:px-6 py-4 mx-auto">
+          <Avatar>
+            <AvatarFallback>MX</AvatarFallback>
+        </Avatar>
+        <MainNav />
+      </div>
+      <div className="grid gap-4 md:gap-8 max-w-6xl mx-auto w-full">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <BalanceCard currency="SC" amount={userData?.sweepsCoins ?? 0} isLoading={isLoading} />
           <BalanceCard currency="USD" amount={userData?.usdBalance ?? 0} isLoading={isLoading} />
