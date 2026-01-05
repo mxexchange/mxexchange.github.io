@@ -18,7 +18,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useState } from 'react';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase/config';
+import { useAuth, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 
@@ -27,6 +27,8 @@ export default function SignInPage() {
   const [password, setPassword] = useState('');
   const router = useRouter();
   const { toast } = useToast();
+  const auth = useAuth();
+  const firestore = useFirestore();
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +46,7 @@ export default function SignInPage() {
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
           // Create a new document in Firestore for the new user
-          await setDoc(doc(db, 'users', user.uid), {
+          await setDoc(doc(firestore, 'users', user.uid), {
             id: user.uid,
             mxRacehubId: `MXR-${user.uid.substring(0, 8)}`, // Example MXRacehub ID
             sweepsCoinBalance: 0,

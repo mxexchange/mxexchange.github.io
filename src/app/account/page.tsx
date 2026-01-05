@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -19,9 +17,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle, Banknote, User, Hash, Coins, KeyRound, CheckCircle } from 'lucide-react';
-import { onAuthStateChanged, type User as FirebaseUser, sendPasswordResetEmail } from 'firebase/auth';
+import { type User as FirebaseUser, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, increment } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase/config';
+import { useAuth, useUser, useFirestore } from '@/firebase';
 import { BalanceCard } from '@/components/dashboard/balance-card';
 import { ExchangeForm } from '@/components/dashboard/exchange-form';
 import { useRouter } from 'next/navigation';
@@ -37,7 +35,9 @@ interface UserData {
 }
 
 export default function AccountPage() {
-  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+  const firestore = useFirestore();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [bankInfo, setBankInfo] = useState({
     bankName: '',
@@ -54,7 +54,7 @@ export default function AccountPage() {
   const router = useRouter();
 
   const fetchUserData = async (currentUser: FirebaseUser) => {
-      const userDocRef = doc(db, 'users', currentUser.uid);
+      const userDocRef = doc(firestore, 'users', currentUser.uid);
       const userDoc = await getDoc(userDocRef);
       if (userDoc.exists()) {
         const data = userDoc.data() as UserData;
@@ -67,22 +67,16 @@ export default function AccountPage() {
           routingNumber: data.routingNumber || '',
         });
       }
+      setIsLoading(false);
   }
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-        await fetchUserData(currentUser);
-      } else {
-        setUser(null);
-        setUserData(null);
-      }
-      setIsLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
+    if (!isUserLoading && user) {
+        fetchUserData(user);
+    } else if (!isUserLoading && !user) {
+        setIsLoading(false);
+    }
+  }, [user, isUserLoading]);
 
   const handleSaveBankInfo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,7 +86,7 @@ export default function AccountPage() {
     }
     setIsSaving(true);
     try {
-        const userDocRef = doc(db, 'users', user.uid);
+        const userDocRef = doc(firestore, 'users', user.uid);
         await setDoc(userDocRef, { ...bankInfo }, { merge: true });
         toast({
             title: 'Bank Information Saved',
@@ -114,7 +108,7 @@ export default function AccountPage() {
     }
     setIsSavingAccount(true);
     try {
-        const userDocRef = doc(db, 'users', user.uid);
+        const userDocRef = doc(firestore, 'users', user.uid);
         await updateDoc(userDocRef, { username });
         await fetchUserData(user); // Re-fetch to update UI
         toast({
@@ -157,7 +151,7 @@ export default function AccountPage() {
     }
     setIsAddingCoins(true);
     try {
-      const userDocRef = doc(db, 'users', user.uid);
+      const userDocRef = doc(firestore, 'users', user.uid);
       await updateDoc(userDocRef, {
         sweepsCoins: increment(10000)
       });
@@ -293,8 +287,7 @@ export default function AccountPage() {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="routingNumber">Routing Number</Label>
-                  <div className="relative">
+                <Label htmlFor="routingNumber">Routing Number</Label>                  <div className="relative">
                   <Hash className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="routingNumber"
@@ -355,7 +348,3 @@ export default function AccountPage() {
     </PageShell>
   );
 }
-
-    
-
-    

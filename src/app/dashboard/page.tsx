@@ -1,4 +1,3 @@
-
 'use client';
 
 import { PageShell } from '@/components/page-shell';
@@ -12,9 +11,8 @@ import {
 import { BalanceCard } from '@/components/dashboard/balance-card';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
 import { useEffect, useState } from 'react';
-import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase/config';
+import { useUser, useFirestore } from '@/firebase';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { MainNav } from '@/components/main-nav';
 
@@ -25,28 +23,27 @@ interface UserData {
 }
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-        const userDocRef = doc(db, 'users', currentUser.uid);
+    const fetchUserData = async () => {
+      if (user) {
+        const userDocRef = doc(firestore, 'users', user.uid);
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
           setUserData(userDoc.data() as UserData);
         }
-      } else {
-        setUser(null);
-        setUserData(null);
       }
       setIsLoading(false);
-    });
+    };
 
-    return () => unsubscribe();
-  }, []);
+    if (!isUserLoading) {
+      fetchUserData();
+    }
+  }, [user, isUserLoading, firestore]);
 
 
   return (
@@ -59,8 +56,8 @@ export default function DashboardPage() {
       </div>
       <div className="grid gap-4 md:gap-8 max-w-6xl mx-auto w-full pt-16">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <BalanceCard currency="SC" amount={userData?.sweepsCoins ?? 0} isLoading={isLoading} />
-          <BalanceCard currency="USD" amount={userData?.usdBalance ?? 0} isLoading={isLoading} />
+          <BalanceCard currency="SC" amount={userData?.sweepsCoins ?? 0} isLoading={isLoading || isUserLoading} />
+          <BalanceCard currency="USD" amount={userData?.usdBalance ?? 0} isLoading={isLoading || isUserLoading} />
         </div>
         <div className="grid grid-cols-1 gap-4 lg:gap-8">
             <RecentTransactions />

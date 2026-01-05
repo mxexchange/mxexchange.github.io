@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { Footer } from '@/components/footer';
 import { cn } from '@/lib/utils';
 import { Inter } from 'next/font/google';
+import { FirebaseClientProvider } from '@/firebase';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -21,12 +22,14 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn('dark', inter.variable)}>
       <body className="font-sans antialiased flex flex-col min-h-screen">
-        <Header />
-        <main className="flex-1 relative">
-          {children}
-        </main>
-        <Footer />
-        <Toaster />
+        <FirebaseClientProvider>
+          <Header />
+          <main className="flex-1 relative">
+            {children}
+          </main>
+          <Footer />
+          <Toaster />
+        </FirebaseClientProvider>
       </body>
     </html>
   );

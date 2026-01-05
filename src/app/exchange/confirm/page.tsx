@@ -1,11 +1,10 @@
-
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
+import { type User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc, writeBatch, increment } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase/config';
+import { useUser, useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { PageShell } from '@/components/page-shell';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,7 +22,8 @@ function ConfirmExchangeComponent() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
 
-  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isConfirming, setIsConfirming] = useState(false);
@@ -40,36 +40,38 @@ function ConfirmExchangeComponent() {
       setError('Invalid exchange amounts provided.');
     }
 
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-        const userDocRef = doc(db, 'users', currentUser.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-          const data = userDoc.data() as UserData;
-          setUserData(data);
-          if (data.sweepsCoins < scAmount) {
-            setError('You do not have enough Sweeps Coins to complete this exchange.');
-          }
-        } else {
-          setError('Could not find user data.');
+    const fetchInitialData = async (currentUser: FirebaseUser) => {
+      const userDocRef = doc(firestore, 'users', currentUser.uid);
+      const userDoc = await getDoc(userDocRef);
+      if (userDoc.exists()) {
+        const data = userDoc.data() as UserData;
+        setUserData(data);
+        if (data.sweepsCoins < scAmount) {
+          setError('You do not have enough Sweeps Coins to complete this exchange.');
         }
+      } else {
+        setError('Could not find user data.');
+      }
+      setIsLoading(false);
+    };
+
+    if (!isUserLoading) {
+      if (user) {
+        fetchInitialData(user);
       } else {
         router.push('/sign-in');
       }
-      setIsLoading(false);
-    });
+    }
 
-    return () => unsubscribe();
-  }, [router, scAmount, usdAmount]);
+  }, [isUserLoading, user, router, scAmount, usdAmount, firestore]);
 
   const handleFinalizeExchange = async () => {
     if (!user || !userData || error) return;
 
     setIsConfirming(true);
     try {
-      const batch = writeBatch(db);
-      const userDocRef = doc(db, 'users', user.uid);
+      const batch = writeBatch(firestore);
+      const userDocRef = doc(firestore, 'users', user.uid);
 
       batch.update(userDocRef, {
         sweepsCoins: increment(-scAmount),
@@ -90,7 +92,7 @@ function ConfirmExchangeComponent() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || isUserLoading) {
     return (
       <div className="flex justify-center items-center h-full">
         <LoaderCircle className="h-8 w-8 animate-spin" />
@@ -164,5 +166,3 @@ export default function ConfirmExchangePage() {
         </PageShell>
     )
 }
-
-    
