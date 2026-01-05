@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import {
   Card,
@@ -19,9 +21,37 @@ import { PageShell } from '@/components/page-shell';
 import { ArrowRight } from 'lucide-react';
 import { MainNav } from '@/components/main-nav';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useState } from 'react';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase/config';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 
 export default function SignInPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      toast({
+        title: 'Signed In',
+        description: 'You have successfully signed in.',
+      });
+      router.push('/dashboard');
+    } catch (error: any) {
+      toast({
+        title: 'Sign In Failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+  
   return (
     <PageShell className="flex flex-col items-center justify-center">
        <div className="flex items-center justify-between w-full max-w-6xl px-4 md:px-6 py-4">
@@ -40,58 +70,52 @@ export default function SignInPage() {
         <Tabs defaultValue="sign-in" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="sign-in">Sign In</TabsTrigger>
-            <TabsTrigger value="register">Register</TabsTrigger>
+            <TabsTrigger value="register" onClick={() => router.push('/register')}>Register</TabsTrigger>
           </TabsList>
           <TabsContent value="sign-in">
             <Card>
-              <CardHeader>
-                <CardTitle>Welcome Back</CardTitle>
-                <CardDescription>
-                  Sign in to access your account, place bets, and more.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="your@email.com" />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="password">Password</Label>
-                    <Link
-                      href="#"
-                      className="text-sm text-accent hover:underline"
-                    >
-                      Forgot Password?
-                    </Link>
+               <form onSubmit={handleSignIn}>
+                <CardHeader>
+                  <CardTitle>Welcome Back</CardTitle>
+                  <CardDescription>
+                    Sign in to access your account, place bets, and more.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
                   </div>
-                  <Input id="password" type="password" placeholder="********" />
-                </div>
-                <Button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white">
-                  Sign In <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </CardContent>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password">Password</Label>
+                      <Link
+                        href="#"
+                        className="text-sm text-accent hover:underline"
+                      >
+                        Forgot Password?
+                      </Link>
+                    </div>
+                    <Input id="password" type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} />
+                  </div>
+                  <Button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white">
+                    Sign In <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </form>
             </Card>
           </TabsContent>
           <TabsContent value="register">
-            <Card>
+             <Card>
               <CardHeader>
                 <CardTitle>Create an Account</CardTitle>
                 <CardDescription>
                   Join us today to start exchanging sweeps coins.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="reg-email">Email</Label>
-                  <Input id="reg-email" type="email" placeholder="your@email.com" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="reg-password">Password</Label>
-                  <Input id="reg-password" type="password" placeholder="********" />
-                </div>
-                <Button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white">
-                  Register
+              <CardContent>
+                 <Button type="button" className="w-full bg-red-600 hover:bg-red-700 text-white" onClick={() => router.push('/register')}>
+                  Go to Registration
                 </Button>
               </CardContent>
             </Card>
