@@ -13,6 +13,10 @@ const navItems = [
     href: '/account',
     label: 'Account',
   },
+  {
+    href: '/settings/bank',
+    label: 'Bank Info',
+  },
 ];
 
 export function MainNav() {
