@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -6,7 +7,6 @@ import { PageShell } from '@/components/page-shell';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { MainNav } from '@/components/main-nav';
 import { Button } from '@/components/ui/button';
-import Link from 'next/link';
 import {
   Card,
   CardContent,
@@ -18,12 +18,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { LoaderCircle, Banknote, User, Hash, Coins } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
-import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
+import { LoaderCircle, Banknote, User, Hash, Coins, KeyRound, Link as LinkIcon, CheckCircle } from 'lucide-react';
+import { onAuthStateChanged, type User as FirebaseUser, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, increment, writeBatch } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/config';
-import { Skeleton } from '@/components/ui/skeleton';
 import { BalanceCard } from '@/components/dashboard/balance-card';
 import { ExchangeForm } from '@/components/dashboard/exchange-form';
 
@@ -46,8 +44,10 @@ export default function AccountPage() {
     accountNumber: '',
     routingNumber: '',
   });
+  const [username, setUsername] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingAccount, setIsSavingAccount] = useState(false);
   const [isAddingCoins, setIsAddingCoins] = useState(false);
   const { toast } = useToast();
 
@@ -57,6 +57,7 @@ export default function AccountPage() {
       if (userDoc.exists()) {
         const data = userDoc.data() as UserData;
         setUserData(data);
+        setUsername(data.username || '');
         setBankInfo({
           bankName: data.bankName || '',
           accountHolder: data.accountHolder || '',
@@ -102,6 +103,46 @@ export default function AccountPage() {
     
     setIsSaving(false);
   };
+  
+  const handleSaveAccountInfo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+        toast({ title: 'You must be logged in to save.', variant: 'destructive' });
+        return;
+    }
+    setIsSavingAccount(true);
+    try {
+        const userDocRef = doc(db, 'users', user.uid);
+        await updateDoc(userDocRef, { username });
+        await fetchUserData(user); // Re-fetch to update UI
+        toast({
+            title: 'Account Information Saved',
+            description: 'Your username has been updated successfully.',
+        });
+    } catch (error) {
+        console.error("Error saving account info: ", error);
+        toast({ title: 'Error saving data', variant: 'destructive' });
+    }
+    setIsSavingAccount(false);
+  };
+
+  const handlePasswordReset = async () => {
+    if (!user || !user.email) {
+      toast({ title: 'Could not send reset email', description: 'No user or email found.', variant: 'destructive' });
+      return;
+    }
+    try {
+      await sendPasswordResetEmail(auth, user.email);
+      toast({
+        title: 'Password Reset Email Sent',
+        description: `An email has been sent to ${user.email} with instructions to reset your password.`,
+      });
+    } catch (error) {
+      console.error("Error sending password reset email:", error);
+      toast({ title: 'Error', description: 'Could not send password reset email.', variant: 'destructive' });
+    }
+  };
+
 
   const handleAddCoins = async () => {
     if (!user) {
@@ -154,9 +195,6 @@ export default function AccountPage() {
         sweepsCoins: increment(-scAmount),
         usdBalance: increment(usdAmount),
       });
-
-      // Here you would typically create a transaction record as well
-      // For now, we just update the balances.
 
       await batch.commit();
       await fetchUserData(user); // Re-fetch data to update UI
@@ -213,7 +251,45 @@ export default function AccountPage() {
                         </CardContent>
                       </Card>
                 </div>
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-2 grid gap-4 auto-rows-min">
+                    <Card>
+                      <form onSubmit={handleSaveAccountInfo}>
+                          <CardHeader>
+                              <CardTitle>Account Settings</CardTitle>
+                              <CardDescription>Manage your account details.</CardDescription>
+                          </CardHeader>
+                          <CardContent className="grid gap-6">
+                            <div className="space-y-1.5">
+                                <Label htmlFor="username">Username</Label>
+                                <div className="relative">
+                                    <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                    <Input id="username" type="text" placeholder="Your username" value={username} onChange={(e) => setUsername(e.target.value)} className="pl-10" disabled={!user || isLoading} />
+                                </div>
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label>Password</Label>
+                                <Button type="button" variant="outline" className="w-full justify-start" onClick={handlePasswordReset} disabled={!user || isLoading}>
+                                    <KeyRound className="mr-2 h-4 w-4" />
+                                    Change Password
+                                </Button>
+                                <p className="text-xs text-muted-foreground">A password reset link will be sent to your email.</p>
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label>MXRacehub Link</Label>
+                                <div className="flex items-center space-x-2 text-sm text-green-400 p-3 bg-muted rounded-md">
+                                    <CheckCircle className="h-5 w-5" />
+                                    <span>Account linked successfully</span>
+                                </div>
+                            </div>
+                          </CardContent>
+                          <CardFooter>
+                              <Button type="submit" className="w-full" disabled={isSavingAccount || !user || isLoading}>
+                                  {isSavingAccount && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
+                                  {isSavingAccount ? 'Saving...' : 'Save Account Changes'}
+                              </Button>
+                          </CardFooter>
+                      </form>
+                    </Card>
                     <Card>
                       <form onSubmit={handleSaveBankInfo}>
                         <CardHeader>
@@ -293,7 +369,7 @@ export default function AccountPage() {
                             {isSaving && (
                               <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
                             )}
-                            {isSaving ? 'Saving...' : 'Save Changes'}
+                            {isSaving ? 'Saving...' : 'Save Bank Changes'}
                           </Button>
                         </CardFooter>
                       </form>
