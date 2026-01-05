@@ -24,7 +24,7 @@ export default function LandingPage() {
         </p>
         <div className="flex flex-col gap-4 sm:flex-row">
           <Button asChild size="lg" className="bg-red-600 hover:bg-red-700 text-white rounded-full px-8 py-6 text-lg">
-            <Link href="/account">Get Started</Link>
+            <Link href="/sign-in">Get Started</Link>
           </Button>
         </div>
       </div>
