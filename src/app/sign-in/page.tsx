@@ -54,13 +54,13 @@ export default function SignInPage() {
   
   return (
     <PageShell className="flex flex-col items-center justify-center">
-       <div className="flex items-center justify-between w-full max-w-6xl px-4 md:px-6 py-4">
+       <div className="absolute top-0 left-0 flex items-center justify-between w-full max-w-6xl px-4 md:px-6 py-4 mx-auto">
              <Avatar>
                 <AvatarFallback>MX</AvatarFallback>
             </Avatar>
             <MainNav />
         </div>
-      <div className="flex-1 flex flex-col items-center justify-center w-full max-w-md px-4">
+      <div className="flex-1 flex flex-col items-center justify-center w-full max-w-md px-4 pt-16">
         <div className="text-center mb-8">
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
                 Sign In

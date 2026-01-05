@@ -179,13 +179,13 @@ export default function AccountPage() {
 
   return (
     <PageShell>
-        <div className="flex items-center justify-between w-full max-w-6xl px-4 md:px-6 py-4 mx-auto">
+        <div className="absolute top-0 left-0 flex items-center justify-between w-full max-w-6xl px-4 md:px-6 py-4 mx-auto">
              <Avatar>
                 <AvatarFallback>MX</AvatarFallback>
             </Avatar>
             <MainNav />
         </div>
-        <div className="grid gap-4 md:gap-8 max-w-6xl mx-auto w-full">
+        <div className="grid gap-4 md:gap-8 max-w-6xl mx-auto w-full pt-16">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <BalanceCard currency="SC" amount={userData?.sweepsCoins ?? 0} isLoading={isLoading} />
               <BalanceCard currency="USD" amount={userData?.usdBalance ?? 0} isLoading={isLoading} />
