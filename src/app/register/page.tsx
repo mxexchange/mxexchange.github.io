@@ -17,7 +17,7 @@ import { MainNav } from '@/components/main-nav';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useState } from 'react';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { signInAnonymously } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase/config';
 import { doc, setDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
@@ -49,16 +49,18 @@ export default function RegisterPage() {
         return;
     }
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      // Use Anonymous sign-in
+      const userCredential = await signInAnonymously(auth);
       const user = userCredential.user;
 
       // Add user to Firestore
       await setDoc(doc(db, 'users', user.uid), {
         username: username,
-        email: user.email,
+        email: email, // Still save the email for future linking
         createdAt: new Date(),
         sweepsCoins: 0,
         usdBalance: 0,
+        isAnonymous: true,
       });
       
       toast({
