@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PageShell } from '@/components/page-shell';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { MainNav } from '@/components/main-nav';
@@ -20,28 +20,79 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle, Banknote, User, Hash } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase/config';
+import { Skeleton } from '@/components/ui/skeleton';
+
+interface UserData {
+  username: string;
+  sweepsCoins: number;
+  bankName?: string;
+  accountHolder?: string;
+  accountNumber?: string;
+  routingNumber?: string;
+}
 
 export default function AccountPage() {
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [bankInfo, setBankInfo] = useState({
-    bankName: 'Global Megabank',
-    accountHolder: 'John Doe',
-    accountNumber: '**** **** **** 1234',
-    routingNumber: '*********',
+    bankName: '',
+    accountHolder: '',
+    accountNumber: '',
+    routingNumber: '',
   });
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        const userDocRef = doc(db, 'users', currentUser.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          const data = userDoc.data() as UserData;
+          setUserData(data);
+          setBankInfo({
+            bankName: data.bankName || '',
+            accountHolder: data.accountHolder || '',
+            accountNumber: data.accountNumber || '',
+            routingNumber: data.routingNumber || '',
+          });
+        }
+      } else {
+        setUser(null);
+        setUserData(null);
+      }
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+        toast({ title: 'You must be logged in to save.', variant: 'destructive' });
+        return;
+    }
     setIsSaving(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+        const userDocRef = doc(db, 'users', user.uid);
+        await setDoc(userDocRef, { ...bankInfo }, { merge: true });
+        toast({
+            title: 'Bank Information Saved',
+            description: 'Your withdrawal details have been updated successfully.',
+        });
+    } catch (error) {
+        console.error("Error saving bank info: ", error);
+        toast({ title: 'Error saving data', variant: 'destructive' });
+    }
+    
     setIsSaving(false);
-
-    toast({
-      title: 'Bank Information Saved',
-      description: 'Your withdrawal details have been updated successfully.',
-    });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,8 +118,19 @@ export default function AccountPage() {
         </div>
 
         <div className="space-y-4 text-lg text-left text-white">
-          <p>Account Name: Value</p>
-          <p>MX Sweeps Coins Available: Value</p>
+          {isLoading ? (
+            <>
+              <Skeleton className="h-7 w-48" />
+              <Skeleton className="h-7 w-64" />
+            </>
+          ) : userData ? (
+            <>
+              <p>Account Name: {userData.username}</p>
+              <p>MX Sweeps Coins Available: {userData.sweepsCoins?.toLocaleString()}</p>
+            </>
+          ) : (
+             <p>Please sign in to view your account.</p>
+          )}
         </div>
 
         <Button asChild size="lg" className="bg-red-600 hover:bg-red-700 text-white rounded-full px-8 py-6 text-lg">
@@ -99,6 +161,7 @@ export default function AccountPage() {
                     value={bankInfo.bankName}
                     onChange={handleChange}
                     className="pl-10"
+                    disabled={!user}
                   />
                 </div>
               </div>
@@ -113,6 +176,7 @@ export default function AccountPage() {
                     value={bankInfo.accountHolder}
                     onChange={handleChange}
                     className="pl-10"
+                    disabled={!user}
                   />
                 </div>
               </div>
@@ -127,6 +191,7 @@ export default function AccountPage() {
                     value={bankInfo.accountNumber}
                     onChange={handleChange}
                     className="pl-10"
+                    disabled={!user}
                   />
                 </div>
               </div>
@@ -141,6 +206,7 @@ export default function AccountPage() {
                     value={bankInfo.routingNumber}
                     onChange={handleChange}
                     className="pl-10"
+                    disabled={!user}
                   />
                 </div>
               </div>
@@ -149,7 +215,7 @@ export default function AccountPage() {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={isSaving}
+                disabled={isSaving || !user}
               >
                 {isSaving && (
                   <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
