@@ -11,7 +11,7 @@ export function Header() {
       </div>
       <div className="flex items-center gap-2">
         <Button asChild variant="secondary">
-            <Link href="/sign-in">Sign In</Link>
+            <Link href="https://studio--studio-122199390-e63be.us-central1.hosted.app/" target="_blank">Sign In</Link>
         </Button>
       </div>
     </header>
