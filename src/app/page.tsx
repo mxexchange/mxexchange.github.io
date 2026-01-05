@@ -6,15 +6,15 @@ import { MainNav } from '@/components/main-nav';
 
 export default function LandingPage() {
   return (
-    <PageShell className="flex flex-col items-center justify-center text-center">
-        <div className="absolute top-20 left-0 flex items-center justify-between w-full max-w-6xl px-4 md:px-6 py-4 mx-auto">
-             <Avatar>
-                <AvatarFallback>MX</AvatarFallback>
-            </Avatar>
-            <MainNav />
-        </div>
+    <PageShell>
+      <div className="absolute top-0 left-0 flex items-center justify-between w-full max-w-6xl px-4 md:px-6 py-4 mx-auto">
+        <Avatar>
+          <AvatarFallback>MX</AvatarFallback>
+        </Avatar>
+        <MainNav />
+      </div>
 
-      <div className="flex flex-col items-center justify-center flex-1 space-y-6">
+      <div className="flex flex-col items-center justify-center flex-1 space-y-6 text-center pt-16">
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
           Sweeps Coin Exchange
         </h1>
