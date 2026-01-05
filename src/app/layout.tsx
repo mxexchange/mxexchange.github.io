@@ -39,7 +39,7 @@ export default function RootLayout({
                 <MainNav />
               </SidebarContent>
             </Sidebar>
-            <SidebarInset className="flex min-h-screen flex-1 flex-col">
+            <SidebarInset>
               <Header />
               {children}
             </SidebarInset>
