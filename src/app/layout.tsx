@@ -1,18 +1,11 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { cn } from '@/lib/utils';
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarInset,
-  SidebarProvider,
-} from '@/components/ui/sidebar';
 import { Header } from '@/components/header';
 import { Toaster } from '@/components/ui/toaster';
-import { MainNav } from '@/components/main-nav';
+import { Footer } from '@/components/footer';
 
 export const metadata: Metadata = {
-  title: 'MX Sweeps Exchange',
+  title: 'MX Exchange',
   description: 'Exchange your sweeps coins for USD.',
 };
 
@@ -31,20 +24,12 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="font-body antialiased">
-        <SidebarProvider>
-          <div className="flex min-h-screen">
-            <Sidebar>
-              <SidebarContent>
-                <MainNav />
-              </SidebarContent>
-            </Sidebar>
-            <SidebarInset>
-              <Header />
-              {children}
-            </SidebarInset>
-          </div>
-        </SidebarProvider>
+      <body className="font-body antialiased flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-1">
+          {children}
+        </main>
+        <Footer />
         <Toaster />
       </body>
     </html>

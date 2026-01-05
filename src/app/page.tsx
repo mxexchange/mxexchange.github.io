@@ -1,48 +1,30 @@
-import { PageShell } from '@/components/page-shell';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { BalanceCard } from '@/components/dashboard/balance-card';
-import { ExchangeForm } from '@/components/dashboard/exchange-form';
-import { RecentTransactions } from '@/components/dashboard/recent-transactions';
 import { Button } from '@/components/ui/button';
-import { Coins } from 'lucide-react';
+import Link from 'next/link';
+import { PageShell } from '@/components/page-shell';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { MainNav } from '@/components/main-nav';
 
-export default function DashboardPage() {
+export default function LandingPage() {
   return (
-    <PageShell>
-      <div className="grid gap-4 md:gap-8">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <BalanceCard currency="SC" amount={150000} />
-          <BalanceCard currency="USD" amount={1250.75} />
+    <PageShell className="flex flex-col items-center justify-center text-center">
+        <div className="flex items-center justify-between w-full max-w-6xl px-4 md:px-6 py-4">
+             <Avatar>
+                <AvatarFallback>MX</AvatarFallback>
+            </Avatar>
+            <MainNav />
         </div>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-5 lg:gap-8">
-          <div className="lg:col-span-3">
-            <RecentTransactions />
-          </div>
-          <div className="lg:col-span-2">
-            <div className="grid gap-4">
-              <ExchangeForm />
-              <Card>
-                <CardHeader>
-                  <CardTitle>Load Sweeps Coins</CardTitle>
-                  <CardDescription>
-                    Simulate loading coins from MXRacehub.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button className="w-full">
-                    <Coins className="mr-2 h-4 w-4" />
-                    Load 10,000 SC
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+
+      <div className="flex flex-col items-center justify-center flex-1 space-y-6">
+        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
+          Sweeps Coin Exchange
+        </h1>
+        <p className="max-w-[600px] text-lg text-muted-foreground md:text-xl">
+          Exchange MX Sweeps Coins For US Dollars
+        </p>
+        <div className="flex flex-col gap-4 sm:flex-row">
+          <Button asChild size="lg" className="bg-red-600 hover:bg-red-700 text-white rounded-full px-8 py-6 text-lg">
+            <Link href="/dashboard">Sign In</Link>
+          </Button>
         </div>
       </div>
     </PageShell>
