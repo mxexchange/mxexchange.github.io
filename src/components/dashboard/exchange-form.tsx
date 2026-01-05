@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -24,14 +25,14 @@ interface ExchangeFormProps {
 
 export function ExchangeForm({ onExchange, sweepsCoinsBalance, disabled = false }: ExchangeFormProps) {
   const [scAmount, setScAmount] = useState('');
-  const [isExchanging, setIsExchanging] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   const usdAmount = scAmount
     ? (parseFloat(scAmount) * SWEEPS_COIN_TO_USD_RATE).toFixed(2)
     : '0.00';
 
-  const handleExchange = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const scAmountNum = parseFloat(scAmount);
     const usdAmountNum = parseFloat(usdAmount);
@@ -46,15 +47,16 @@ export function ExchangeForm({ onExchange, sweepsCoinsBalance, disabled = false 
         return;
     }
 
-    setIsExchanging(true);
+    setIsSubmitting(true);
     await onExchange(scAmountNum, usdAmountNum);
-    setIsExchanging(false);
-    setScAmount('');
+    // Navigation will happen in the parent, so we don't reset state here unless navigation fails.
+    // In a real app, you might want more robust state management.
+    setIsSubmitting(false);
   };
 
   return (
     <Card>
-      <form onSubmit={handleExchange}>
+      <form onSubmit={handleSubmit}>
         <CardHeader>
           <CardTitle>Exchange</CardTitle>
           <CardDescription>
@@ -71,7 +73,7 @@ export function ExchangeForm({ onExchange, sweepsCoinsBalance, disabled = false 
                   placeholder="Amount of SC to exchange"
                   value={scAmount}
                   onChange={(e) => setScAmount(e.target.value)}
-                  disabled={disabled || isExchanging}
+                  disabled={disabled || isSubmitting}
                 />
                  <p className="text-xs text-muted-foreground">
                     Available: {sweepsCoinsBalance.toLocaleString()} SC
@@ -95,15 +97,17 @@ export function ExchangeForm({ onExchange, sweepsCoinsBalance, disabled = false 
           <Button
             type="submit"
             className="w-full"
-            disabled={disabled || !scAmount || parseFloat(scAmount) <= 0 || isExchanging}
+            disabled={disabled || !scAmount || parseFloat(scAmount) <= 0 || isSubmitting}
           >
-            {isExchanging && (
+            {isSubmitting && (
               <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
             )}
-            {isExchanging ? 'Exchanging...' : 'Confirm Exchange'}
+            {isSubmitting ? 'Proceeding...' : 'Confirm Exchange'}
           </Button>
         </CardFooter>
       </form>
     </Card>
   );
 }
+
+    

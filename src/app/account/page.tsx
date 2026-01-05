@@ -18,12 +18,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { LoaderCircle, Banknote, User, Hash, Coins, KeyRound, Link as LinkIcon, CheckCircle } from 'lucide-react';
+import { LoaderCircle, Banknote, User, Hash, Coins, KeyRound, CheckCircle } from 'lucide-react';
 import { onAuthStateChanged, type User as FirebaseUser, sendPasswordResetEmail } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc, increment, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, increment } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/config';
 import { BalanceCard } from '@/components/dashboard/balance-card';
 import { ExchangeForm } from '@/components/dashboard/exchange-form';
+import { useRouter } from 'next/navigation';
 
 interface UserData {
   username: string;
@@ -50,6 +51,7 @@ export default function AccountPage() {
   const [isSavingAccount, setIsSavingAccount] = useState(false);
   const [isAddingCoins, setIsAddingCoins] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
 
   const fetchUserData = async (currentUser: FirebaseUser) => {
       const userDocRef = doc(db, 'users', currentUser.uid);
@@ -177,36 +179,7 @@ export default function AccountPage() {
   };
   
   const handleExchange = async (scAmount: number, usdAmount: number) => {
-    if (!user || !userData) {
-      toast({ title: 'You must be logged in to make an exchange.', variant: 'destructive' });
-      return;
-    }
-
-    if (userData.sweepsCoins < scAmount) {
-      toast({ title: 'Insufficient Sweeps Coins', description: 'You do not have enough SC to complete this exchange.', variant: 'destructive' });
-      return;
-    }
-
-    try {
-      const batch = writeBatch(db);
-      const userDocRef = doc(db, 'users', user.uid);
-
-      batch.update(userDocRef, {
-        sweepsCoins: increment(-scAmount),
-        usdBalance: increment(usdAmount),
-      });
-
-      await batch.commit();
-      await fetchUserData(user); // Re-fetch data to update UI
-
-      toast({
-        title: 'Exchange Successful',
-        description: `You have exchanged ${scAmount.toLocaleString()} SC for $${usdAmount.toFixed(2)}.`,
-      });
-    } catch (error) {
-      console.error("Error during exchange: ", error);
-      toast({ title: 'Exchange Failed', description: 'An error occurred during the exchange.', variant: 'destructive' });
-    }
+    router.push(`/exchange/confirm?sc=${scAmount}&usd=${usdAmount}`);
   };
 
   const handleBankInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -382,5 +355,7 @@ export default function AccountPage() {
     </PageShell>
   );
 }
+
+    
 
     
