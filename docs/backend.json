@@ -4,7 +4,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UserAccount",
       "type": "object",
-      "description": "Represents a user's account within the MX Sweeps Exchange.",
+      "description": "Represents a user's account within the MX Sweeps Exchange platform.",
       "properties": {
         "id": {
           "type": "string",
@@ -12,21 +12,26 @@
         },
         "mxRacehubId": {
           "type": "string",
-          "description": "The unique identifier of the user's account on MXRacehub."
+          "description": "User's ID from MXRacehub. Used for account synchronization."
         },
         "sweepsCoinBalance": {
           "type": "number",
-          "description": "The user's sweeps coin balance.",
+          "description": "The user's current sweeps coin balance.",
           "format": "float"
         },
         "usdBalance": {
           "type": "number",
-          "description": "The user's USD balance.",
+          "description": "The user's current USD balance.",
           "format": "float"
         },
-        "lastSyncDate": {
+        "createdAt": {
           "type": "string",
-          "description": "The date and time of the last successful synchronization with MXRacehub.",
+          "description": "Timestamp indicating when the account was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the account was last updated.",
           "format": "date-time"
         }
       },
@@ -34,14 +39,16 @@
         "id",
         "mxRacehubId",
         "sweepsCoinBalance",
-        "usdBalance"
+        "usdBalance",
+        "createdAt",
+        "updatedAt"
       ]
     },
     "Transaction": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Transaction",
       "type": "object",
-      "description": "Represents a transaction involving sweeps coins or USD.",
+      "description": "Represents a single transaction within the MX Sweeps Exchange platform.",
       "properties": {
         "id": {
           "type": "string",
@@ -49,38 +56,45 @@
         },
         "userAccountId": {
           "type": "string",
-          "description": "Reference to UserAccount. The ID of the user account associated with this transaction. (Relationship: UserAccount 1:N Transaction)"
+          "description": "Reference to UserAccount. (Relationship: UserAccount 1:N Transaction)"
         },
         "transactionType": {
           "type": "string",
-          "description": "The type of transaction (e.g., 'deposit', 'withdrawal', 'exchange')."
+          "description": "Type of transaction (e.g., 'deposit', 'withdrawal', 'exchange')."
         },
-        "amount": {
+        "sweepsCoinAmount": {
           "type": "number",
-          "description": "The amount of sweeps coins or USD involved in the transaction.",
+          "description": "Amount of sweeps coins involved in the transaction. Can be positive or negative.",
           "format": "float"
         },
-        "currency": {
-          "type": "string",
-          "description": "The currency of the transaction (e.g., 'sweeps', 'usd')."
-        },
-        "transactionDate": {
-          "type": "string",
-          "description": "The date and time of the transaction.",
-          "format": "date-time"
+        "usdAmount": {
+          "type": "number",
+          "description": "Amount of USD involved in the transaction. Can be positive or negative.",
+          "format": "float"
         },
         "exchangeRate": {
           "type": "number",
-          "description": "The exchange rate used for the transaction, if applicable (e.g., sweeps to USD).",
+          "description": "The exchange rate used for the transaction (sweeps coins to USD).",
           "format": "float"
+        },
+        "transactionDate": {
+          "type": "string",
+          "description": "Date and time when the transaction occurred.",
+          "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the transaction",
+          "format": "string"
         }
       },
       "required": [
         "id",
         "userAccountId",
         "transactionType",
-        "amount",
-        "currency",
+        "sweepsCoinAmount",
+        "usdAmount",
+        "exchangeRate",
         "transactionDate"
       ]
     },
@@ -96,37 +110,42 @@
         },
         "userAccountId": {
           "type": "string",
-          "description": "Reference to UserAccount. The ID of the user account associated with this withdrawal request. (Relationship: UserAccount 1:N WithdrawalRequest)"
+          "description": "Reference to UserAccount. (Relationship: UserAccount 1:N WithdrawalRequest)"
         },
-        "amount": {
+        "usdAmount": {
           "type": "number",
-          "description": "The amount of USD requested for withdrawal.",
+          "description": "The amount of USD the user wishes to withdraw.",
           "format": "float"
         },
-        "paymentMethod": {
+        "withdrawalMethod": {
           "type": "string",
-          "description": "The user's selected payment method for the withdrawal (e.g., 'PayPal', 'Bank Transfer')."
+          "description": "The user's chosen method for withdrawal (e.g., PayPal, bank transfer)."
         },
-        "paymentDetails": {
+        "withdrawalDetails": {
           "type": "string",
-          "description": "Additional details required for the selected payment method (e.g., PayPal email address, bank account number)."
+          "description": "Details for the withdrawal method (e.g., PayPal email address, bank account number)."
         },
         "requestDate": {
           "type": "string",
-          "description": "The date and time the withdrawal request was submitted.",
+          "description": "Date and time when the withdrawal request was submitted.",
           "format": "date-time"
         },
         "status": {
           "type": "string",
-          "description": "The status of the withdrawal request (e.g., 'pending', 'approved', 'rejected', 'completed')."
+          "description": "The current status of the withdrawal request (e.g., 'pending', 'approved', 'rejected')."
+        },
+        "processedDate": {
+          "type": "string",
+          "description": "Date and time when the withdrawal request was processed.",
+          "format": "date-time"
         }
       },
       "required": [
         "id",
         "userAccountId",
-        "amount",
-        "paymentMethod",
-        "paymentDetails",
+        "usdAmount",
+        "withdrawalMethod",
+        "withdrawalDetails",
         "requestDate",
         "status"
       ]
@@ -135,7 +154,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ComplianceAlert",
       "type": "object",
-      "description": "Represents an alert generated by the compliance tool for suspicious activity.",
+      "description": "Represents an alert generated by the compliance tool for unusual or suspicious activity.",
       "properties": {
         "id": {
           "type": "string",
@@ -143,37 +162,37 @@
         },
         "userAccountId": {
           "type": "string",
-          "description": "Reference to UserAccount. The ID of the user account associated with the alert. (Relationship: UserAccount 1:N ComplianceAlert)"
-        },
-        "transactionId": {
-          "type": "string",
-          "description": "Reference to Transaction. The ID of the transaction that triggered the alert. (Relationship: Transaction 1:N ComplianceAlert)"
+          "description": "Reference to UserAccount. (Relationship: UserAccount 1:N ComplianceAlert) The user account associated with the alert."
         },
         "alertType": {
           "type": "string",
           "description": "The type of compliance alert (e.g., 'large_transaction', 'unusual_activity')."
         },
-        "alertDate": {
-          "type": "string",
-          "description": "The date and time the compliance alert was generated.",
-          "format": "date-time"
-        },
         "description": {
           "type": "string",
-          "description": "A detailed description of the suspicious activity that triggered the alert."
+          "description": "A detailed description of the suspicious activity."
         },
-        "resolved": {
-          "type": "boolean",
-          "description": "Indicates whether the alert has been resolved by an administrator."
+        "alertDate": {
+          "type": "string",
+          "description": "Date and time when the alert was generated.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the alert (e.g., 'open', 'under_review', 'resolved')."
+        },
+        "resolutionDetails": {
+          "type": "string",
+          "description": "Details of how the alert was resolved."
         }
       },
       "required": [
         "id",
         "userAccountId",
         "alertType",
-        "alertDate",
         "description",
-        "resolved"
+        "alertDate",
+        "status"
       ]
     }
   },
@@ -186,21 +205,17 @@
   "firestore": {
     "structure": [
       {
-        "path": "/users/{userId}/userAccounts/{userAccountId}",
+        "path": "/users/{userId}",
         "definition": {
           "entityName": "UserAccount",
           "schema": {
             "$ref": "#/backend/entities/UserAccount"
           },
-          "description": "Stores user account information. Uses path-based ownership for security.",
+          "description": "Stores user account data.  Path-based ownership ensures only the user can access their account.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "userAccountId",
-              "description": "The unique identifier for the user account."
+              "description": "The unique identifier of the user account, matching the Firebase Auth UID."
             }
           ]
         }
@@ -212,11 +227,11 @@
           "schema": {
             "$ref": "#/backend/entities/Transaction"
           },
-          "description": "Stores transaction history for each user. Uses path-based ownership for security.",
+          "description": "Stores transaction history for each user. Path-based ownership ensures only the user can access their transactions. Includes redundant `userAccountId` field for clarity.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier for the user."
+              "description": "The unique identifier of the user account."
             },
             {
               "name": "transactionId",
@@ -232,11 +247,11 @@
           "schema": {
             "$ref": "#/backend/entities/WithdrawalRequest"
           },
-          "description": "Stores withdrawal requests. Uses path-based ownership for security.",
+          "description": "Stores withdrawal requests for each user. Path-based ownership ensures only the user can access their withdrawal requests.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier for the user."
+              "description": "The unique identifier of the user account."
             },
             {
               "name": "withdrawalRequestId",
@@ -252,7 +267,7 @@
           "schema": {
             "$ref": "#/backend/entities/ComplianceAlert"
           },
-          "description": "Stores compliance alerts. Requires admin access.",
+          "description": "Stores compliance alerts. Accessible only to administrators.",
           "params": [
             {
               "name": "complianceAlertId",
@@ -260,8 +275,24 @@
             }
           ]
         }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "roles_admin",
+          "schema": {
+            "$ref": "#/backend/entities/UserAccount"
+          },
+          "description": "Presence in this collection grants admin privileges. Existence over content.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user account."
+            }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore structure is designed to securely manage user accounts, transactions, withdrawal requests, and compliance alerts for the MX Sweeps Exchange application. Prioritizing Authorization Independence, the structure avoids hierarchical dependencies and relies on denormalization to ensure robust security rules. Each collection is designed with a homogeneous security posture. Path-based ownership is used for user-specific data, and the membership map model is not required given there is no sharing amongst users.\n\n*   `/users/{userId}/userAccounts/{userAccountId}`: Stores user account details. This collection uses path-based ownership. User accounts are namespaced under the user's ID for easy management and enhanced security.\n*   `/users/{userId}/transactions/{transactionId}`: Stores transaction history for each user, namespaced by user ID.\n*   `/users/{userId}/withdrawalRequests/{withdrawalRequestId}`: Stores withdrawal requests, also namespaced by user ID.\n*   `/complianceAlerts/{complianceAlertId}`: Stores compliance alerts, using a flat collection structure. This collection requires special admin access, so no denormalization is required."
+    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and debuggability, following the core principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters). It uses denormalization to avoid hierarchical authorization dependencies, structural segregation for homogeneous security postures, and standardized access modeling.\n\n*   **User Accounts:** User accounts are stored in `/users/{userId}`, enabling path-based ownership for private data. This simplifies security rules, ensuring only the authenticated user can access their account data.\n*   **Transactions:** Transactions are stored in `/users/{userId}/transactions/{transactionId}`, which follows the pattern `/users/{userId}/entityName/{entityId}`. This enforces clear ownership. The `userAccountId` field within each transaction document is redundant but serves to clarify ownership. This setup supports secure `list` operations, preventing unauthorized access to transaction history.\n*   **Withdrawal Requests:** Withdrawal requests are stored in `/users/{userId}/withdrawalRequests/{withdrawalRequestId}`, following the user-owned pattern. Access is restricted to the user who initiated the request.\n*   **Compliance Alerts:** Compliance alerts are stored in a separate collection `/complianceAlerts/{complianceAlertId}`. This segregation is crucial because compliance alerts are not user-owned. Admin access to these alerts is controlled via the `/roles_admin/{uid}` collection.  Since the `userAccountId` is stored, one can build an index to show which alerts are tied to which user. Since they are not user owned, this prevents a user from trying to read/write alerts that do not belong to them.\n\n**Authorization Independence (Denormalization):**\n\n*   The design eliminates `get()` calls in security rules by using path-based ownership for user-specific data (accounts, transactions, withdrawal requests). The admin can read/write to the `/complianceAlerts/{complianceAlertId}` and is authorized via the `/roles_admin/{uid}` collection.\n\n**QAPs (Rules are not Filters):**\n\n*   The structure supports secure `list` operations by segregating data based on ownership and access requirements. Path-based ownership ensures that listing documents within `/users/{userId}/transactions` or `/users/{userId}/withdrawalRequests` only returns data owned by the authenticated user."
   }
 }

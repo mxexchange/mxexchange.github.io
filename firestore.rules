@@ -1,96 +1,112 @@
 /**
- * Core Philosophy: This ruleset enforces a strict user-ownership model. All user-related data is private and can only be accessed by the authenticated owner. This ensures strong data isolation and privacy.
+ * @title Firebase Security Rules for MX Sweeps Exchange
+ * @version 1.0
  *
- * Data Structure: User data is organized hierarchically under the `/users/{userId}` path. This structure naturally namespaces all user-specific collections (like accounts, transactions, and withdrawal requests) and allows for simple, path-based security rules. A separate top-level collection, `/complianceAlerts`, is reserved for administrative use and is completely locked down from client access by default.
+ * @description
+ * This ruleset enforces a strict, hybrid security model combining user ownership
+ * with role-based access control (RBAC) to protect sensitive financial and
+ * compliance data. The default security posture is to deny all access unless
+ * explicitly granted.
+ *
+ * @philosophy
+ * Core Philosophy: A user's data is their own. All user-specific information,
+ * including their account details, transactions, and withdrawal requests, is
+ * strictly confined to that user. A separate, privileged role ('admin') is
+ * required to access system-level data like compliance alerts.
+ *
+ * Data Structure:
+ * - /users/{userId}/...: All user-specific data is nested under this path,
+ *   creating a clear ownership boundary. This includes subcollections for
+ *   `transactions` and `withdrawalRequests`.
+ * - /complianceAlerts/{alertId}: A top-level collection for administrative data,
+ *   structurally segregated from user data to enforce a different and more
+ *   restrictive security policy.
+ * - /roles_admin/{userId}: A lookup collection that defines who is an admin.
+ *   The existence of a document here grants admin privileges.
  *
  * Key Security Decisions:
- * - User Isolation: A user can only ever read or write data within their own data tree (`/users/{userId}/**`). There is no cross-user data access.
- * - No Public Listing: The top-level `/users` collection is not listable, preventing attackers from enumerating all users in the system.
- * - Admin-Only Collection: The `/complianceAlerts` collection is inaccessible to all client-side requests. Access should only be granted to backend processes with admin privileges (e.g., Cloud Functions running with a service account).
- * - Relational Integrity: On document creation, rules validate that the owner ID within the document's data matches the user ID in the document's path. This prevents data from being created in the wrong user's data tree. These ownership fields are then enforced as immutable on update.
- *
- * Denormalization for Authorization: The rules rely on the path (`/users/{userId}`) to determine ownership, avoiding the need for costly `get()` calls to other documents. For subcollections like `transactions`, the rules enforce that a `userAccountId` field within the new document matches the `{userId}` from the path, ensuring data consistency without extra reads.
- *
- * Structural Segregation: User-private data (`/users/{userId}/*`) and admin-only data (`/complianceAlerts`) are stored in separate, independent collections. This is a highly secure and performant pattern that prevents any possibility of private data leaking into public queries.
+ * - User Data Privacy: A user can only ever access documents where the path
+ *   contains their own UID. They cannot read or list any other user's data.
+ * - Admin Segregation: Admins do not have blanket access to user data. Their
+ *   privileges are scoped to specific administrative collections like
+ *   /complianceAlerts.
+ * - Client-Side Writes to Roles Denied: The /roles_admin collection is read-only
+ *   for admins and completely inaccessible to regular users. This prevents any
+ *   client-side attempts to escalate privileges. Role management must be done
+ *   through a trusted server environment or the Firebase Console.
+ * - Relational Integrity: On document creation, rules validate that internal ID
+ *   fields (e.g., `userAccountId`) match the user's UID in the path, ensuring
+ *   data is correctly associated with its owner from the start. These fields are
+ *   enforced as immutable on update.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     // Helper Functions
-    // ------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
 
     /**
-     * Checks if a user is authenticated.
+     * Returns true if the user is authenticated.
      */
     function isSignedIn() {
       return request.auth != null;
     }
 
     /**
-     * Checks if the currently authenticated user's UID matches the provided userId.
-     * This is the primary function for enforcing data ownership.
+     * Returns true if the authenticated user's UID matches the provided userId.
+     * This is the foundation for the user-ownership security model.
+     * @param userId The user ID to check against the authenticated user's UID.
      */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
     /**
-     * Checks if a document currently exists in Firestore.
-     * Used to protect against updates or deletes on non-existent documents.
-     */
-    function isExistingDoc() {
-      return resource != null;
-    }
-    
-    /**
-     * A convenience function that combines an ownership check with an existence check.
-     * Ensures that update and delete operations target an existing document owned by the user.
+     * Returns true if the user is the owner AND the document already exists.
+     * Used for safe update and delete operations.
+     * @param userId The user ID to check for ownership.
      */
     function isExistingOwner(userId) {
-      return isOwner(userId) && isExistingDoc();
+      return isOwner(userId) && resource != null;
     }
 
-    // ------------------------------------------------------------------------
-    // User Data Tree
-    // ------------------------------------------------------------------------
+    /**
+     * Returns true if the user has an admin role.
+     * Admin status is determined by the existence of a document for the user
+     * in the /roles_admin collection.
+     */
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    // -------------------------------------------------------------------------
+    // User Data Collections
+    // -------------------------------------------------------------------------
 
     /**
-     * @description Rules for a user's private data tree. Disallows listing all users.
+     * @description Controls access to a user's primary account document.
      * @path /users/{userId}
-     * @allow (get) An authenticated user `user-123` can get their own user document at `/users/user-123`.
-     * @deny (list) No user can list the `/users` collection to see all other users.
-     * @principle Prevents enumeration of all application users.
+     * @allow (create) An authenticated user (UID 'user123') creating their own account document at `/users/user123`.
+     * @deny (get) User 'user123' attempting to read the account document at `/users/user456`.
+     * @deny (list) Any user attempting to list all documents in the `/users` collection.
+     * @principle Enforces self-creation and strict data ownership for a user's root document.
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if false; // Typically user root docs are not deleted by clients.
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
 
       /**
-       * @description A user's financial account information.
-       * @path /users/{userId}/userAccounts/{userAccountId}
-       * @allow (create) User `user-123` can create a new account document at `/users/user-123/userAccounts/acct-abc` as long as the document data contains `id: 'acct-abc'`.
-       * @deny (get) User `user-456` cannot get `/users/user-123/userAccounts/acct-abc`.
-       * @principle Restricts access to a user's own data tree and enforces path-data consistency.
-       */
-      match /userAccounts/{userAccountId} {
-        allow get: if isOwner(userId);
-        allow list: if isOwner(userId);
-        allow create: if isOwner(userId) && request.resource.data.id == userAccountId;
-        allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-        allow delete: if isExistingOwner(userId);
-      }
-
-      /**
-       * @description A user's transaction history.
+       * @description Controls access to a user's transaction history.
        * @path /users/{userId}/transactions/{transactionId}
-       * @allow (create) User `user-123` can create a new transaction at `/users/user-123/transactions/txn-abc` if the document data contains `userAccountId: 'user-123'`.
-       * @deny (update) User `user-123` cannot update an existing transaction to change its `userAccountId`.
-       * @principle Enforces document ownership for writes and ensures the immutability of critical relational fields.
+       * @allow (create) User 'user123' creating a new transaction in their own subcollection.
+       * @allow (list) User 'user123' listing all documents at `/users/user123/transactions`.
+       * @deny (get) User 'user456' attempting to read a transaction from `/users/user123/transactions/tx_abc`.
+       * @principle Restricts access to a user's own private data tree.
        */
       match /transactions/{transactionId} {
         allow get: if isOwner(userId);
@@ -101,11 +117,12 @@ service cloud.firestore {
       }
 
       /**
-       * @description A user's withdrawal requests.
+       * @description Controls access to a user's withdrawal requests.
        * @path /users/{userId}/withdrawalRequests/{withdrawalRequestId}
-       * @allow (get) User `user-123` can read their own withdrawal request at `/users/user-123/withdrawalRequests/req-abc`.
-       * @deny (list) User `user-456` cannot list withdrawal requests under `/users/user-123`.
-       * @principle Restricts access to a user's own sensitive financial data.
+       * @allow (create) User 'user123' creating a new withdrawal request in their own subcollection.
+       * @allow (list) User 'user123' listing all documents at `/users/user123/withdrawalRequests`.
+       * @deny (get) User 'user456' attempting to read a request from `/users/user123/withdrawalRequests/req_abc`.
+       * @principle Restricts access to a user's own private data tree.
        */
       match /withdrawalRequests/{withdrawalRequestId} {
         allow get: if isOwner(userId);
@@ -116,22 +133,38 @@ service cloud.firestore {
       }
     }
 
-    // ------------------------------------------------------------------------
-    // Admin Collections
-    // ------------------------------------------------------------------------
-    
+    // -------------------------------------------------------------------------
+    // Administrative Collections
+    // -------------------------------------------------------------------------
+
     /**
-     * @description Stores compliance alerts for admin review. This collection is locked down from all client access.
+     * @description Controls access to compliance alerts, which are only visible to admins.
      * @path /complianceAlerts/{complianceAlertId}
-     * @allow (none) No client-side operations are permitted.
-     * @deny (any) Any user attempting to read or write to this collection will be denied.
-     * @principle Secures sensitive admin-only data by defaulting to denial of all client requests. Access must be performed by a trusted backend server or Cloud Function using Admin SDKs.
+     * @allow (get) An authenticated admin user reading any compliance alert.
+     * @deny (list) Any non-admin user attempting to list compliance alerts.
+     * @deny (create) A non-admin user attempting to create a new compliance alert.
+     * @principle Enforces strict Role-Based Access Control (RBAC) for sensitive system data.
      */
     match /complianceAlerts/{complianceAlertId} {
-      // Deny all client-side access. This data should only be managed by a trusted backend service.
-      // TODO: Implement an admin verification system (e.g., using custom claims) if admin access from the client is ever required.
-      allow get: if false;
-      allow list: if false;
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin() && resource != null;
+      allow delete: if isAdmin() && resource != null;
+    }
+
+    /**
+     * @description Secures the admin role definition collection itself. Admins can read
+     *              this collection, but no user can modify it from the client.
+     * @path /roles_admin/{userId}
+     * @allow (get) An admin reading `/roles_admin/user123` to see if that user is an admin.
+     * @deny (create) Any user (including an admin) trying to create a document to grant admin rights.
+     * @deny (delete) Any user trying to delete a document to revoke admin rights.
+     * @principle Secures the role management system by preventing client-side privilege escalation.
+     */
+    match /roles_admin/{userId} {
+      allow get: if isAdmin();
+      allow list: if isAdmin();
       allow create: if false;
       allow update: if false;
       allow delete: if false;
