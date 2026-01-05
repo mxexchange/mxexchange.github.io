@@ -39,7 +39,7 @@ export default function SignInPage() {
       router.push('/account'); // Redirect to account page after sign-in
     } catch (error: any) {
       // If user does not exist, create a new account
-      if (error.code === 'auth/user-not-found') {
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
         try {
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;

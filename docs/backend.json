@@ -64,7 +64,7 @@
         },
         "sweepsCoinAmount": {
           "type": "number",
-          "description": "Amount of sweeps coins involved in the transaction. Can be positive or negative.",
+          "description": "Amount of sweeps coins involved in the. Can be positive or negative.",
           "format": "float"
         },
         "usdAmount": {
@@ -198,8 +198,7 @@
   },
   "auth": {
     "providers": [
-      "password",
-      "anonymous"
+      "password"
     ]
   },
   "firestore": {
