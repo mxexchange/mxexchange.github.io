@@ -13,9 +13,6 @@ export function Header() {
         <Button variant="secondary" asChild>
           <Link href="/sign-in">Sign in</Link>
         </Button>
-        <Button variant="outline" asChild className="bg-background/20 text-white hover:bg-background/30">
-          <Link href="/register">Register</Link>
-        </Button>
       </div>
     </header>
   );

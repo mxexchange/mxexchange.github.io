@@ -8,12 +8,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -65,62 +59,42 @@ export default function SignInPage() {
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
                 Sign In
             </h1>
+            <p className="text-muted-foreground">
+              Sign in with your MXRacehub account.
+            </p>
         </div>
 
-        <Tabs defaultValue="sign-in" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="sign-in">Sign In</TabsTrigger>
-            <TabsTrigger value="register" onClick={() => router.push('/register')}>Register</TabsTrigger>
-          </TabsList>
-          <TabsContent value="sign-in">
-            <Card>
-               <form onSubmit={handleSignIn}>
-                <CardHeader>
-                  <CardTitle>Welcome Back</CardTitle>
-                  <CardDescription>
-                    Sign in to access your account, place bets, and more.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="password">Password</Label>
-                      <Link
-                        href="#"
-                        className="text-sm text-accent hover:underline"
-                      >
-                        Forgot Password?
-                      </Link>
-                    </div>
-                    <Input id="password" type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} />
-                  </div>
-                  <Button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white">
-                    Sign In <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </CardContent>
-              </form>
-            </Card>
-          </TabsContent>
-          <TabsContent value="register">
-             <Card>
-              <CardHeader>
-                <CardTitle>Create an Account</CardTitle>
+        <Card className="w-full">
+            <form onSubmit={handleSignIn}>
+            <CardHeader>
+                <CardTitle>Welcome Back</CardTitle>
                 <CardDescription>
-                  Join us today to start exchanging sweeps coins.
+                Sign in to access your account and exchange sweeps coins.
                 </CardDescription>
-              </CardHeader>
-              <CardContent>
-                 <Button type="button" className="w-full bg-red-600 hover:bg-red-700 text-white" onClick={() => router.push('/register')}>
-                  Go to Registration
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                    <Label htmlFor="password">Password</Label>
+                    <Link
+                    href="#"
+                    className="text-sm text-accent hover:underline"
+                    >
+                    Forgot Password?
+                    </Link>
+                </div>
+                <Input id="password" type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} />
+                </div>
+                <Button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white">
+                Sign In <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+            </CardContent>
+            </form>
+        </Card>
       </div>
     </PageShell>
   );
