@@ -217,167 +217,170 @@ export default function AccountPage() {
 
   return (
     <PageShell>
-        <div className="absolute top-0 left-0 flex items-center justify-between w-full max-w-6xl px-4 md:px-6 py-4 mx-auto">
-             <Avatar>
-                <AvatarFallback>MX</AvatarFallback>
-            </Avatar>
-            <MainNav />
+      <div className="absolute top-0 left-0 flex items-center justify-between w-full max-w-6xl px-4 md:px-6 py-4 mx-auto">
+        <Avatar>
+          <AvatarFallback>MX</AvatarFallback>
+        </Avatar>
+        <MainNav />
+      </div>
+      <div className="grid gap-8 max-w-xl mx-auto w-full pt-16">
+        {/* Step 1: Account Settings */}
+        <Card>
+          <form onSubmit={handleSaveAccountInfo}>
+            <CardHeader>
+              <CardTitle>Step 1: Account Settings</CardTitle>
+              <CardDescription>Manage your account details.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-6">
+              <div className="space-y-1.5">
+                <Label htmlFor="username">Username</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input id="username" type="text" placeholder="Your username" value={username} onChange={(e) => setUsername(e.target.value)} className="pl-10" disabled={!user || isLoading} />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Password</Label>
+                <Button type="button" variant="outline" className="w-full justify-start" onClick={handlePasswordReset} disabled={!user || isLoading}>
+                  <KeyRound className="mr-2 h-4 w-4" />
+                  Change Password
+                </Button>
+                <p className="text-xs text-muted-foreground">A password reset link will be sent to your email.</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label>MXRacehub Link</Label>
+                <div className="flex items-center space-x-2 text-sm text-green-400 p-3 bg-muted rounded-md">
+                  <CheckCircle className="h-5 w-5" />
+                  <span>Account linked successfully</span>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button type="submit" className="w-full" disabled={isSavingAccount || !user || isLoading}>
+                {isSavingAccount && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
+                {isSavingAccount ? 'Saving...' : 'Save Account Changes'}
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+
+        {/* Step 2: Bank Account Information */}
+        <Card>
+          <form onSubmit={handleSaveBankInfo}>
+            <CardHeader>
+              <CardTitle>Step 2: Bank Account Information</CardTitle>
+              <CardDescription>
+                Manage your bank account for USD withdrawals.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-6">
+              <div className="space-y-1.5">
+                <Label htmlFor="bankName">Bank Name</Label>
+                <div className="relative">
+                  <Banknote className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="bankName"
+                    type="text"
+                    placeholder="e.g., Global Megabank"
+                    value={bankInfo.bankName}
+                    onChange={handleBankInfoChange}
+                    className="pl-10"
+                    disabled={!user || isLoading}
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="accountHolder">Account Holder Name</Label>
+                  <div className="relative">
+                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="accountHolder"
+                    type="text"
+                    placeholder="e.g., John Doe"
+                    value={bankInfo.accountHolder}
+                    onChange={handleBankInfoChange}
+                    className="pl-10"
+                    disabled={!user || isLoading}
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="accountNumber">Account Number</Label>
+                  <div className="relative">
+                  <Hash className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="accountNumber"
+                    type="text"
+                    placeholder="**** **** **** 1234"
+                    value={bankInfo.accountNumber}
+                    onChange={handleBankInfoChange}
+                    className="pl-10"
+                    disabled={!user || isLoading}
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="routingNumber">Routing Number</Label>
+                  <div className="relative">
+                  <Hash className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="routingNumber"
+                    type="text"
+                    placeholder="e.g., 123456789"
+                    value={bankInfo.routingNumber}
+                    onChange={handleBankInfoChange}
+                    className="pl-10"
+                    disabled={!user || isLoading}
+                  />
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isSaving || !user || isLoading}
+              >
+                {isSaving && (
+                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                {isSaving ? 'Saving...' : 'Save Bank Changes'}
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+
+        {/* Step 3: Load Sweeps Coins */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Step 3: Load Sweeps Coins</CardTitle>
+            <CardDescription>
+              Simulate loading coins from MXRacehub.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button className="w-full" onClick={handleAddCoins} disabled={isAddingCoins || !user}>
+              {isAddingCoins ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Coins className="mr-2 h-4 w-4" />}
+              {isAddingCoins ? 'Loading...' : 'Load 10,000 SC'}
+            </Button>
+          </CardContent>
+        </Card>
+        
+        {/* Step 4: Balances */}
+        <div className="grid gap-4 sm:grid-cols-2">
+            <BalanceCard currency="SC" amount={userData?.sweepsCoins ?? 0} isLoading={isLoading} />
+            <BalanceCard currency="USD" amount={userData?.usdBalance ?? 0} isLoading={isLoading} />
         </div>
-        <div className="grid gap-4 md:gap-8 max-w-6xl mx-auto w-full pt-16">
-             <div className="grid grid-cols-1 gap-4 lg:grid-cols-5 lg:gap-8">
-                 <div className="lg:col-span-3 grid gap-4">
-                    <ExchangeForm 
-                        onExchange={handleExchange} 
-                        sweepsCoinsBalance={userData?.sweepsCoins ?? 0} 
-                        disabled={!user || isLoading}
-                    />
-                </div>
-                <div className="lg:col-span-2 grid gap-4 auto-rows-min">
-                    <Card>
-                      <form onSubmit={handleSaveAccountInfo}>
-                          <CardHeader>
-                              <CardTitle>Account Settings</CardTitle>
-                              <CardDescription>Manage your account details.</CardDescription>
-                          </CardHeader>
-                          <CardContent className="grid gap-6">
-                            <div className="space-y-1.5">
-                                <Label htmlFor="username">Username</Label>
-                                <div className="relative">
-                                    <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                    <Input id="username" type="text" placeholder="Your username" value={username} onChange={(e) => setUsername(e.target.value)} className="pl-10" disabled={!user || isLoading} />
-                                </div>
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label>Password</Label>
-                                <Button type="button" variant="outline" className="w-full justify-start" onClick={handlePasswordReset} disabled={!user || isLoading}>
-                                    <KeyRound className="mr-2 h-4 w-4" />
-                                    Change Password
-                                </Button>
-                                <p className="text-xs text-muted-foreground">A password reset link will be sent to your email.</p>
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label>MXRacehub Link</Label>
-                                <div className="flex items-center space-x-2 text-sm text-green-400 p-3 bg-muted rounded-md">
-                                    <CheckCircle className="h-5 w-5" />
-                                    <span>Account linked successfully</span>
-                                </div>
-                            </div>
-                          </CardContent>
-                          <CardFooter>
-                              <Button type="submit" className="w-full" disabled={isSavingAccount || !user || isLoading}>
-                                  {isSavingAccount && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
-                                  {isSavingAccount ? 'Saving...' : 'Save Account Changes'}
-                              </Button>
-                          </CardFooter>
-                      </form>
-                    </Card>
-                    <Card>
-                      <form onSubmit={handleSaveBankInfo}>
-                        <CardHeader>
-                          <CardTitle>Bank Account Information</CardTitle>
-                          <CardDescription>
-                            Manage your bank account for USD withdrawals.
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="grid gap-6">
-                          <div className="space-y-1.5">
-                            <Label htmlFor="bankName">Bank Name</Label>
-                            <div className="relative">
-                              <Banknote className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                              <Input
-                                id="bankName"
-                                type="text"
-                                placeholder="e.g., Global Megabank"
-                                value={bankInfo.bankName}
-                                onChange={handleBankInfoChange}
-                                className="pl-10"
-                                disabled={!user || isLoading}
-                              />
-                            </div>
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label htmlFor="accountHolder">Account Holder Name</Label>
-                             <div className="relative">
-                              <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                              <Input
-                                id="accountHolder"
-                                type="text"
-                                placeholder="e.g., John Doe"
-                                value={bankInfo.accountHolder}
-                                onChange={handleBankInfoChange}
-                                className="pl-10"
-                                disabled={!user || isLoading}
-                              />
-                            </div>
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label htmlFor="accountNumber">Account Number</Label>
-                             <div className="relative">
-                              <Hash className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                              <Input
-                                id="accountNumber"
-                                type="text"
-                                placeholder="**** **** **** 1234"
-                                value={bankInfo.accountNumber}
-                                onChange={handleBankInfoChange}
-                                className="pl-10"
-                                disabled={!user || isLoading}
-                              />
-                            </div>
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label htmlFor="routingNumber">Routing Number</Label>
-                             <div className="relative">
-                              <Hash className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                              <Input
-                                id="routingNumber"
-                                type="text"
-                                placeholder="e.g., 123456789"
-                                value={bankInfo.routingNumber}
-                                onChange={handleBankInfoChange}
-                                className="pl-10"
-                                disabled={!user || isLoading}
-                              />
-                            </div>
-                          </div>
-                        </CardContent>
-                        <CardFooter>
-                          <Button
-                            type="submit"
-                            className="w-full"
-                            disabled={isSaving || !user || isLoading}
-                          >
-                            {isSaving && (
-                              <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                            )}
-                            {isSaving ? 'Saving...' : 'Save Bank Changes'}
-                          </Button>
-                        </CardFooter>
-                      </form>
-                    </Card>
-                </div>
-            </div>
-             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="grid gap-4">
-                    <BalanceCard currency="SC" amount={userData?.sweepsCoins ?? 0} isLoading={isLoading} />
-                     <Card>
-                        <CardHeader>
-                          <CardTitle>Load Sweeps Coins</CardTitle>
-                          <CardDescription>
-                            Simulate loading coins from MXRacehub.
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <Button className="w-full" onClick={handleAddCoins} disabled={isAddingCoins || !user}>
-                            {isAddingCoins ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Coins className="mr-2 h-4 w-4" />}
-                            {isAddingCoins ? 'Loading...' : 'Load 10,000 SC'}
-                          </Button>
-                        </CardContent>
-                      </Card>
-                </div>
-                <BalanceCard currency="USD" amount={userData?.usdBalance ?? 0} isLoading={isLoading} />
-            </div>
-        </div>
+
+        {/* Step 5: Exchange */}
+        <ExchangeForm 
+            onExchange={handleExchange} 
+            sweepsCoinsBalance={userData?.sweepsCoins ?? 0} 
+            disabled={!user || isLoading}
+        />
+      </div>
     </PageShell>
   );
 }
+
+    
