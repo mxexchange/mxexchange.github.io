@@ -1,0 +1,140 @@
+/**
+ * Core Philosophy: This ruleset enforces a strict user-ownership model. All user-related data is private and can only be accessed by the authenticated owner. This ensures strong data isolation and privacy.
+ *
+ * Data Structure: User data is organized hierarchically under the `/users/{userId}` path. This structure naturally namespaces all user-specific collections (like accounts, transactions, and withdrawal requests) and allows for simple, path-based security rules. A separate top-level collection, `/complianceAlerts`, is reserved for administrative use and is completely locked down from client access by default.
+ *
+ * Key Security Decisions:
+ * - User Isolation: A user can only ever read or write data within their own data tree (`/users/{userId}/**`). There is no cross-user data access.
+ * - No Public Listing: The top-level `/users` collection is not listable, preventing attackers from enumerating all users in the system.
+ * - Admin-Only Collection: The `/complianceAlerts` collection is inaccessible to all client-side requests. Access should only be granted to backend processes with admin privileges (e.g., Cloud Functions running with a service account).
+ * - Relational Integrity: On document creation, rules validate that the owner ID within the document's data matches the user ID in the document's path. This prevents data from being created in the wrong user's data tree. These ownership fields are then enforced as immutable on update.
+ *
+ * Denormalization for Authorization: The rules rely on the path (`/users/{userId}`) to determine ownership, avoiding the need for costly `get()` calls to other documents. For subcollections like `transactions`, the rules enforce that a `userAccountId` field within the new document matches the `{userId}` from the path, ensuring data consistency without extra reads.
+ *
+ * Structural Segregation: User-private data (`/users/{userId}/*`) and admin-only data (`/complianceAlerts`) are stored in separate, independent collections. This is a highly secure and performant pattern that prevents any possibility of private data leaking into public queries.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ------------------------------------------------------------------------
+    // Helper Functions
+    // ------------------------------------------------------------------------
+
+    /**
+     * Checks if a user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the currently authenticated user's UID matches the provided userId.
+     * This is the primary function for enforcing data ownership.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Checks if a document currently exists in Firestore.
+     * Used to protect against updates or deletes on non-existent documents.
+     */
+    function isExistingDoc() {
+      return resource != null;
+    }
+    
+    /**
+     * A convenience function that combines an ownership check with an existence check.
+     * Ensures that update and delete operations target an existing document owned by the user.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && isExistingDoc();
+    }
+
+    // ------------------------------------------------------------------------
+    // User Data Tree
+    // ------------------------------------------------------------------------
+
+    /**
+     * @description Rules for a user's private data tree. Disallows listing all users.
+     * @path /users/{userId}
+     * @allow (get) An authenticated user `user-123` can get their own user document at `/users/user-123`.
+     * @deny (list) No user can list the `/users` collection to see all other users.
+     * @principle Prevents enumeration of all application users.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if false; // Typically user root docs are not deleted by clients.
+
+      /**
+       * @description A user's financial account information.
+       * @path /users/{userId}/userAccounts/{userAccountId}
+       * @allow (create) User `user-123` can create a new account document at `/users/user-123/userAccounts/acct-abc` as long as the document data contains `id: 'acct-abc'`.
+       * @deny (get) User `user-456` cannot get `/users/user-123/userAccounts/acct-abc`.
+       * @principle Restricts access to a user's own data tree and enforces path-data consistency.
+       */
+      match /userAccounts/{userAccountId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && request.resource.data.id == userAccountId;
+        allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+        allow delete: if isExistingOwner(userId);
+      }
+
+      /**
+       * @description A user's transaction history.
+       * @path /users/{userId}/transactions/{transactionId}
+       * @allow (create) User `user-123` can create a new transaction at `/users/user-123/transactions/txn-abc` if the document data contains `userAccountId: 'user-123'`.
+       * @deny (update) User `user-123` cannot update an existing transaction to change its `userAccountId`.
+       * @principle Enforces document ownership for writes and ensures the immutability of critical relational fields.
+       */
+      match /transactions/{transactionId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && request.resource.data.userAccountId == userId;
+        allow update: if isExistingOwner(userId) && request.resource.data.userAccountId == resource.data.userAccountId;
+        allow delete: if isExistingOwner(userId);
+      }
+
+      /**
+       * @description A user's withdrawal requests.
+       * @path /users/{userId}/withdrawalRequests/{withdrawalRequestId}
+       * @allow (get) User `user-123` can read their own withdrawal request at `/users/user-123/withdrawalRequests/req-abc`.
+       * @deny (list) User `user-456` cannot list withdrawal requests under `/users/user-123`.
+       * @principle Restricts access to a user's own sensitive financial data.
+       */
+      match /withdrawalRequests/{withdrawalRequestId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && request.resource.data.userAccountId == userId;
+        allow update: if isExistingOwner(userId) && request.resource.data.userAccountId == resource.data.userAccountId;
+        allow delete: if isExistingOwner(userId);
+      }
+    }
+
+    // ------------------------------------------------------------------------
+    // Admin Collections
+    // ------------------------------------------------------------------------
+    
+    /**
+     * @description Stores compliance alerts for admin review. This collection is locked down from all client access.
+     * @path /complianceAlerts/{complianceAlertId}
+     * @allow (none) No client-side operations are permitted.
+     * @deny (any) Any user attempting to read or write to this collection will be denied.
+     * @principle Secures sensitive admin-only data by defaulting to denial of all client requests. Access must be performed by a trusted backend server or Cloud Function using Admin SDKs.
+     */
+    match /complianceAlerts/{complianceAlertId} {
+      // Deny all client-side access. This data should only be managed by a trusted backend service.
+      // TODO: Implement an admin verification system (e.g., using custom claims) if admin access from the client is ever required.
+      allow get: if false;
+      allow list: if false;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}
