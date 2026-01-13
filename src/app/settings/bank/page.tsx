@@ -1,6 +1,8 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { usePlaidLink } from 'react-plaid-link';
 import { PageShell } from '@/components/page-shell';
 import {
   Card,
@@ -25,6 +27,35 @@ export default function BankSettingsPage() {
   });
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+  const [linkToken, setLinkToken] = useState(null);
+
+  useEffect(() => {
+    const createLinkToken = async () => {
+      const response = await fetch('/api/plaid-link-token', {
+        method: 'POST',
+      });
+      const { link_token } = await response.json();
+      setLinkToken(link_token);
+    };
+    createLinkToken();
+  }, []);
+
+  const { open, ready } = usePlaidLink({
+    token: linkToken,
+    onSuccess: async (public_token, metadata) => {
+      await fetch('/api/plaid', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ public_token }),
+      });
+      toast({
+        title: 'Bank Account Linked',
+        description: 'Your bank account has been successfully linked.',
+      });
+    },
+  });
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,6 +87,9 @@ export default function BankSettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-6">
+              <Button onClick={() => open()} disabled={!ready}>
+                Link Bank Account
+              </Button>
               <div className="space-y-1.5">
                 <Label htmlFor="bankName">Bank Name</Label>
                 <div className="relative">
