@@ -12,6 +12,9 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 export const metadata: Metadata = {
   title: 'MX Exchange',
   description: 'Exchange your sweeps coins for USD.',
+  icons: {
+    icon: '/mx-logo.svg',
+  },
 };
 
 export default function RootLayout({

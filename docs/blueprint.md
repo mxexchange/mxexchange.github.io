@@ -1,4 +1,4 @@
-# **App Name**: MX Sweeps Exchange
+# **App Name**: MX Exchange
 
 ## Core Features:
 
