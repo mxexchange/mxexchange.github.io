@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { PageShell } from '@/components/page-shell';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { MainNav } from '@/components/main-nav';
@@ -23,6 +23,7 @@ import { useAuth, useUser, useFirestore } from '@/firebase';
 import { BalanceCard } from '@/components/dashboard/balance-card';
 import { ExchangeForm } from '@/components/dashboard/exchange-form';
 import { useRouter } from 'next/navigation';
+import { usePlaidLink } from 'react-plaid-link';
 
 interface UserData {
   username: string;
@@ -32,6 +33,8 @@ interface UserData {
   accountHolder?: string;
   accountNumber?: string;
   routingNumber?: string;
+  plaidAccessToken?: string;
+  plaidItemId?: string;
 }
 
 export default function AccountPage() {
@@ -50,6 +53,7 @@ export default function AccountPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingAccount, setIsSavingAccount] = useState(false);
   const [isAddingCoins, setIsAddingCoins] = useState(false);
+  const [linkToken, setLinkToken] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -78,27 +82,54 @@ export default function AccountPage() {
     }
   }, [user, isUserLoading]);
 
-  const handleSaveBankInfo = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) {
-        toast({ title: 'You must be logged in to save.', variant: 'destructive' });
-        return;
-    }
-    setIsSaving(true);
-    try {
-        const userDocRef = doc(firestore, 'users', user.uid);
-        await setDoc(userDocRef, { ...bankInfo }, { merge: true });
-        toast({
-            title: 'Bank Information Saved',
-            description: 'Your withdrawal details have been updated successfully.',
+  useEffect(() => {
+    const createLinkToken = async () => {
+      try {
+        const response = await fetch('/api/plaid-link-token', { method: 'POST' });
+        const { link_token } = await response.json();
+        setLinkToken(link_token);
+      } catch (error) {
+        console.error('Error creating Plaid link token:', error);
+      }
+    };
+    createLinkToken();
+  }, []);
+
+  const onPlaidSuccess = useCallback(
+    async (public_token: string) => {
+      setIsSaving(true);
+      try {
+        await fetch('/api/plaid', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ public_token, userId: user?.uid }),
         });
-    } catch (error) {
-        console.error("Error saving bank info: ", error);
-        toast({ title: 'Error saving data', variant: 'destructive' });
-    }
-    
-    setIsSaving(false);
-  };
+
+        if (user) {
+            await fetchUserData(user);
+        }
+
+        toast({
+          title: 'Bank Account Linked',
+          description: 'Your bank account has been successfully linked.',
+        });
+      } catch (error) {
+        console.error('Error linking bank account:', error);
+        toast({ title: 'Error Linking Account', variant: 'destructive' });
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [user, fetchUserData]
+  );
+
+  const { open, ready } = usePlaidLink({
+    token: linkToken,
+    onSuccess: onPlaidSuccess,
+  });
+
   
   const handleSaveAccountInfo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,7 +141,9 @@ export default function AccountPage() {
     try {
         const userDocRef = doc(firestore, 'users', user.uid);
         await updateDoc(userDocRef, { username });
-        await fetchUserData(user); // Re-fetch to update UI
+        if(user) {
+            await fetchUserData(user);
+        } 
         toast({
             title: 'Account Information Saved',
             description: 'Your username has been updated successfully.',
@@ -155,7 +188,9 @@ export default function AccountPage() {
       await updateDoc(userDocRef, {
         sweepsCoins: increment(10000)
       });
-      await fetchUserData(user); // Re-fetch user data to update UI
+      if (user) {
+        await fetchUserData(user);
+      }
       toast({
         title: 'Success',
         description: '10,000 SC added to your account.',
@@ -175,12 +210,6 @@ export default function AccountPage() {
   const handleExchange = async (scAmount: number, usdAmount: number) => {
     router.push(`/exchange/confirm?sc=${scAmount}&usd=${usdAmount}`);
   };
-
-  const handleBankInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setBankInfo((prev) => ({ ...prev, [id]: value }));
-  };
-
 
   return (
     <PageShell>
@@ -233,87 +262,30 @@ export default function AccountPage() {
 
         {/* Step 2: Bank Account Information */}
         <Card>
-          <form onSubmit={handleSaveBankInfo}>
             <CardHeader>
               <CardTitle>Step 2: Bank Account Information</CardTitle>
               <CardDescription>
                 Manage your bank account for USD withdrawals.
               </CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-6">
-              <div className="space-y-1.5">
-                <Label htmlFor="bankName">Bank Name</Label>
-                <div className="relative">
-                  <Banknote className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="bankName"
-                    type="text"
-                    placeholder="e.g., Global Megabank"
-                    value={bankInfo.bankName}
-                    onChange={handleBankInfoChange}
-                    className="pl-10"
-                    disabled={!user || isLoading}
-                  />
+            <CardContent>
+            {userData?.plaidItemId ? (
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 rounded-md bg-muted">
+                        <div>
+                            <p className="font-medium">{bankInfo.bankName}</p>
+                            <p className="text-sm text-muted-foreground">**** **** **** {bankInfo.accountNumber}</p>
+                        </div>
+                        <Button variant="outline" disabled>Linked</Button>
+                    </div>
                 </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="accountHolder">Account Holder Name</Label>
-                  <div className="relative">
-                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="accountHolder"
-                    type="text"
-                    placeholder="e.g., John Doe"
-                    value={bankInfo.accountHolder}
-                    onChange={handleBankInfoChange}
-                    className="pl-10"
-                    disabled={!user || isLoading}
-                  />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="accountNumber">Account Number</Label>
-                  <div className="relative">
-                  <Hash className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="accountNumber"
-                    type="text"
-                    placeholder="**** **** **** 1234"
-                    value={bankInfo.accountNumber}
-                    onChange={handleBankInfoChange}
-                    className="pl-10"
-                    disabled={!user || isLoading}
-                  />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="routingNumber">Routing Number</Label>                  <div className="relative">
-                  <Hash className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="routingNumber"
-                    type="text"
-                    placeholder="e.g., 123456789"
-                    value={bankInfo.routingNumber}
-                    onChange={handleBankInfoChange}
-                    className="pl-10"
-                    disabled={!user || isLoading}
-                  />
-                </div>
-              </div>
+            ) : (
+                <Button onClick={() => open()} disabled={!ready || isSaving} className="w-full">
+                    {isSaving ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Banknote className="mr-2 h-4 w-4" />}
+                    {isSaving ? 'Linking...' : 'Link Bank Account'}
+                </Button>
+            )}
             </CardContent>
-            <CardFooter>
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={isSaving || !user || isLoading}
-              >
-                {isSaving && (
-                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                {isSaving ? 'Saving...' : 'Save Bank Changes'}
-              </Button>
-            </CardFooter>
-          </form>
         </Card>
 
         {/* Step 3: Load Sweeps Coins */}

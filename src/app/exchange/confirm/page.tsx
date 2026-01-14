@@ -34,6 +34,8 @@ function ConfirmExchangeComponent() {
 
   const scAmount = scAmountStr ? parseFloat(scAmountStr) : 0;
   const usdAmount = usdAmountStr ? parseFloat(usdAmountStr) : 0;
+  const exchangeFee = usdAmount * 0.02;
+  const netUsdAmount = usdAmount - exchangeFee;
 
   useEffect(() => {
     if (!scAmount || !usdAmount || scAmount * SWEEPS_COIN_TO_USD_RATE !== usdAmount) {
@@ -72,17 +74,22 @@ function ConfirmExchangeComponent() {
     try {
       const batch = writeBatch(firestore);
       const userDocRef = doc(firestore, 'users', user.uid);
+      const houseAccountRef = doc(firestore, 'system', 'houseAccount');
 
       batch.update(userDocRef, {
         sweepsCoins: increment(-scAmount),
-        usdBalance: increment(usdAmount),
+        usdBalance: increment(netUsdAmount),
       });
+
+      batch.set(houseAccountRef, { 
+        balance: increment(exchangeFee) 
+      }, { merge: true });
 
       await batch.commit();
 
       toast({
         title: 'Exchange Successful',
-        description: `You have exchanged ${scAmount.toLocaleString()} SC for $${usdAmount.toFixed(2)}.`,
+        description: `You have exchanged ${scAmount.toLocaleString()} SC for $${netUsdAmount.toFixed(2)}. A 2% fee of $${exchangeFee.toFixed(2)} was applied.`,
       });
       router.push('/account');
     } catch (exchangeError) {
@@ -136,11 +143,12 @@ function ConfirmExchangeComponent() {
             </div>
             <ArrowRight className="h-5 w-5 text-muted-foreground" />
             <div className="font-bold text-lg text-green-400">
-                {usdAmount.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                {netUsdAmount.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
             </div>
         </div>
-        <div className="text-sm text-muted-foreground">
-            By clicking "Finalize Exchange", you agree to exchange {scAmount.toLocaleString()} Sweeps Coins for ${usdAmount.toFixed(2)}. This action is irreversible.
+        <div className="text-sm text-muted-foreground space-y-2">
+            <p>A 2% exchange fee of <strong>${exchangeFee.toFixed(2)}</strong> will be deducted from your exchange amount.</p>
+            <p>By clicking "Finalize Exchange", you agree to exchange {scAmount.toLocaleString()} Sweeps Coins for <strong>${netUsdAmount.toFixed(2)}</strong>. This action is irreversible.</p>
         </div>
       </CardContent>
       <CardFooter className="flex-col sm:flex-row gap-2">
